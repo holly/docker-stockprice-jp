@@ -1,0 +1,6 @@
+version: "3"
+
+services:
+  sockprice-jp:
+    build: .
+    image: holly/stockprice-jp
