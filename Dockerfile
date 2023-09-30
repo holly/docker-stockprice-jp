@@ -12,9 +12,11 @@ RUN --mount=type=cache,target=/var/lib/apt/lists --mount=type=cache,target=/var/
  && cd python \
  && pip install --no-cache-dir  -r ../requirements.txt -t ./ \
  && find ./ -type d -name __pycache__ | xargs rm -frv \
+ && cd ../ \
  && curl -LO https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/117.0.5938.92/linux64/chromedriver-linux64.zip \
  && unzip chromedriver-linux64.zip  \
- && rm -f chromedriver-linux64.zip \
+ && mv chromedriver-linux64/chromedriver chromedriver \
+ && rm -fr chromedriver-linux64.zip chromedriver-linux64 \
  && chmod +x /app/stockprice_jp.py \
  && cd ../ 
 

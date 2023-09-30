@@ -2,14 +2,14 @@
 
 import re
 import sys
-import time
+import os
 import json
 import selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 
-DRIVER_PATH = "/app/python/chromedriver-linux64/chromedriver"
+DRIVER_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "chromedriver")
 
 if len(sys.argv) < 2:
     print("stock code is not defined")
