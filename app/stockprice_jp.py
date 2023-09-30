@@ -53,7 +53,7 @@ def get_industry_name_by_code(code):
         if entry["min"] <= code and entry["max"] >= code:
             return entry["description"]
 
-    return "その他"
+    return "サービス業"
 
 if len(sys.argv) < 2:
     print("stock code is not defined")
@@ -97,6 +97,9 @@ elements = driver.find_elements(by=By.XPATH, value="//*[@class=\"P6K39c\"]")
 previous_close_price = elements[0].text
 previous_close_price = previous_close_price.replace("¥", "")
 data["previous_close_price"] = float(previous_close_price.replace(",", ""))
+
+per = elements[4].text
+data["per"] = float(per)
 
 if elements[5].text == "-":
     rate_of_dividend = 0
