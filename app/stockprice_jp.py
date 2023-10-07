@@ -102,9 +102,9 @@ try:
     data["code"]          = code
     data["industry_name"] = get_industry_name_by_code(code)
 except selenium.common.exceptions.NoSuchElementException as e:
-    print(e.msg)
+    print(e.msg, file=sys.stderr)
     driver.quit()
-    sys.exit(2)
+    sys.exit(1)
 
 
 # 株価
@@ -122,34 +122,42 @@ per = elements[4].text
 if per == "-":
     data["per"] = per
 else:
-    data["per"] = float(per)
+    data["per"] = round(float(per), 2)
 
 # 配当利回り
 if elements[5].text == "-":
     rate_of_dividend = 0
 else:
     rate_of_dividend = elements[5].text.replace("%", "")
-    rate_of_dividend = float(rate_of_dividend) / 100
+    rate_of_dividend = round(float(rate_of_dividend) / 100, 4)
 data["rate_of_dividend"] = rate_of_dividend
 
 # open balance sheet
-element = driver.find_element(by=By.XPATH, value="//span[text()=\"貸借対照表\"]")
-element.click()
-element = None
-time.sleep(3)
+try:
+    element = driver.find_element(by=By.XPATH, value="//span[text()=\"貸借対照表\"]")
+    element.click()
+    element = None
+    time.sleep(3)
 
-elements = driver.find_elements(by=By.XPATH, value="//*[@class=\"QXDnM\"]")
+    elements = driver.find_elements(by=By.XPATH, value="//*[@class=\"QXDnM\"]")
 
-# 純資産
-net_assets= jpnumstr2int(elements[10].text)
-# 発行済み株式枚数
-outstanding_shares = jpnumstr2int(elements[11].text)
-elements = None
+    # 純資産
+    net_assets= jpnumstr2int(elements[10].text)
+    # 発行済み株式枚数
+    outstanding_shares = jpnumstr2int(elements[11].text)
+    elements = None
 
-bps = net_assets / outstanding_shares
-pbr = stock_price / bps
-data["bps"] = round(bps, 2)
-data["pbr"] = round(pbr, 2)
+    bps = round(net_assets / outstanding_shares, 2)
+    pbr = round(stock_price / bps, 2)
+
+except selenium.common.exceptions.NoSuchElementException as e:
+    print(e.msg, file=sys.stderr)
+    bps = 0
+    pbr = 0
+
+
+data["bps"] = bps
+data["pbr"] = pbr
 driver.quit()
 
 print(json.dumps(data, ensure_ascii=False))
