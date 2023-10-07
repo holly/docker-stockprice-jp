@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import re
+import time
 import sys
 import os
 import json
@@ -8,6 +9,8 @@ import selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 DRIVER_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "chromedriver")
 
@@ -55,6 +58,20 @@ def get_industry_name_by_code(code):
 
     return "サービス業"
 
+def jpnumstr2int(s):
+
+    s = s.replace("¥", "")
+    s = s.replace(",", "")
+    if re.match(r"^.*兆$", s):
+        s = float(s.replace("兆", "")) * 1000000000000
+    elif re.match(r"^.*億$", s):
+        s = float(s.replace("億", "")) * 100000000
+    elif re.match(r"^.*万$", s):
+        s = float(s.replace("万", "")) * 10000
+    else:
+        s = float(s)
+    return s
+
 if len(sys.argv) < 2:
     print("stock code is not defined")
     sys.exit(1)
@@ -75,6 +92,8 @@ options.add_argument("--disable-gpu")
 service = webdriver.chrome.service.Service(executable_path=DRIVER_PATH)
 
 driver = webdriver.Chrome(options=options, service=service)
+#driver.implicitly_wait(5)
+#WebDriverWait(driver, 5).until(EC.presence_of_all_elements_located)
 driver.get("https://www.google.com/finance/quote/{}:TYO?hl=ja".format(code))
 
 try:
@@ -88,27 +107,49 @@ except selenium.common.exceptions.NoSuchElementException as e:
     sys.exit(2)
 
 
+# 株価
 element = driver.find_element(by=By.XPATH, value="//*[@class=\"YMlKec fxKbKc\"]")
-stock_price = element.text
-stock_price = stock_price.replace("¥", "")
-data["stock_price"] = float(stock_price.replace(",", ""))
+stock_price = jpnumstr2int(element.text)
+data["stock_price"] = stock_price
 
+# 前日終値
 elements = driver.find_elements(by=By.XPATH, value="//*[@class=\"P6K39c\"]")
-previous_close_price = elements[0].text
-previous_close_price = previous_close_price.replace("¥", "")
-data["previous_close_price"] = float(previous_close_price.replace(",", ""))
+previous_close_price = jpnumstr2int(elements[0].text)
+data["previous_close_price"] = previous_close_price
 
+# PER
 per = elements[4].text
-data["per"] = float(per)
+if per == "-":
+    data["per"] = per
+else:
+    data["per"] = float(per)
 
+# 配当利回り
 if elements[5].text == "-":
     rate_of_dividend = 0
 else:
     rate_of_dividend = elements[5].text.replace("%", "")
     rate_of_dividend = float(rate_of_dividend) / 100
-
 data["rate_of_dividend"] = rate_of_dividend
 
+# open balance sheet
+element = driver.find_element(by=By.XPATH, value="//span[text()=\"貸借対照表\"]")
+element.click()
+element = None
+time.sleep(3)
+
+elements = driver.find_elements(by=By.XPATH, value="//*[@class=\"QXDnM\"]")
+
+# 純資産
+net_assets= jpnumstr2int(elements[10].text)
+# 発行済み株式枚数
+outstanding_shares = jpnumstr2int(elements[11].text)
+elements = None
+
+bps = net_assets / outstanding_shares
+pbr = stock_price / bps
+data["bps"] = round(bps, 2)
+data["pbr"] = round(pbr, 2)
 driver.quit()
 
 print(json.dumps(data, ensure_ascii=False))
