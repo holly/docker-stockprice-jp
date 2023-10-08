@@ -120,7 +120,7 @@ data["previous_close_price"] = previous_close_price
 # PER
 per = elements[4].text
 if per == "-":
-    data["per"] = per
+    data["per"] = 0
 else:
     data["per"] = round(float(per), 2)
 
